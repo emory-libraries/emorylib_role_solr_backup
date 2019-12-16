@@ -1,0 +1,28 @@
+---
+- name: Solr backup/restore playbook
+  serial: 1
+  hosts: arch1_solr_server
+  become: True
+  #connection: smart
+  gather_facts: no
+  remote_user: "{{ user }}"
+
+  tasks:
+  - name: setme       
+    set_fact:
+      server: arch1_solr_server
+
+  - name: showme
+    debug: 
+      msg: "{{ server }}" 
+
+  - import_role:
+      name: curl
+
+  - import_role: 
+      name: backup
+    when: mode  == 'backup'
+
+  - import_role: 
+      name: restore
+    when: mode == 'restore'  

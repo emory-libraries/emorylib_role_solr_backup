@@ -1,0 +1,3 @@
+aws_region: us-east-1
+backup_dir: "/tmp/solr_collection"
+bucket_name: cor-devops-binaries

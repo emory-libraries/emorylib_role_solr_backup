@@ -1,0 +1,10 @@
+---
+- name: Install cURL package
+  remote_user: "{{ user }}"
+  become: True
+  yum:
+    name: curl
+    state: present
+  tags:
+  - csv 
+  - api 

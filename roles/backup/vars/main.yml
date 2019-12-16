@@ -1,0 +1,16 @@
+solr_host: 10.65.89.17
+solr_port: 8983
+zkport: 2181
+solr_collection: curate_collection
+backup_dir: "/tmp/solr_collection"
+restore_dir: "{{ backup_dir }}"
+backup_restore_dir: "/tmp/solr_collection"
+collection_backup_dir: "{{ backup_dir }}/{{ solr_collection }}"
+confs_backup_dir: "{{ collection_backup_dir }}/confs"
+solr_home: '/opt/solr'
+zkpath: "{{ solr_home }}/server/scripts/cloud-scripts/zkcli.sh"
+#today: "{{ ansible_date_time.date }}"
+today: "{{ lookup('pipe','date +%Y-%m-%d') }}"
+api_output_path: "{{ collection_backup_dir }}/{{ solr_collection }}"
+api_restore_path: "{{ restore_dir }}/{{ solr_collection }}/{{ solr_collection }}"
+fields_to_skip: "score,_version_"

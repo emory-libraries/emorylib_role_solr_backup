@@ -1,0 +1,82 @@
+---
+# tasks file for backup
+- name: Create backup directory
+  file:
+     path: "{{ backup_restore_dir }}"
+     state: directory
+     owner: solr
+     mode: "755"
+  tags:
+  - csv
+  - api 
+
+- name: Create collection backup directory
+  file:
+     path: "{{ collection_backup_dir }}"
+     state: directory
+     owner: solr
+     mode: "755"     
+  tags:
+  - csv    
+
+- name: Create API collection backup directory
+  file:
+     path: "{{ api_output_path }}"
+     state: directory
+     owner: solr
+     mode: "755"     
+  tags:
+  - api    
+
+- name: Create Zookeeper configuration files backup directory
+  file:
+     path: "{{ collection_backup_dir }}/confs"
+     state: directory
+     owner: solr
+     mode: "755"     
+  tags:
+  - csv
+  - api
+
+- name: Get Solr collection in CSV format for backup
+  shell: "curl -L -s -o \"{{ collection_backup_dir }}/curate.csv\" \"http://{{ solr_host }}:{{ solr_port }}/solr/{{ solr_collection }}/select?q=*:*&rows=10000000&wt=csv\""
+  tags: 
+  - csv
+
+- name: Get configuration files from ZooKeeper
+  shell: "{{ zkpath }} -zkhost {{ solr_host }}:{{ zkport }} -cmd downconfig -confdir {{ confs_backup_dir }} -confname {{ solr_collection }}"
+  tags: 
+  - csv
+  - api
+
+- name: Create REST API backup of collection
+  shell: "curl -L -s \"http://{{ solr_host }}:{{ solr_port }}/solr/{{ solr_collection }}/replication?command=backup&location={{ api_output_path }}\""
+  tags:
+  - api 
+
+- name: Create an archive of files created from Solr data and Zookeeper configuration files
+  archive:
+    path: "{{ collection_backup_dir }}"
+    dest: "/tmp/{{ solr_collection }}_{{ today }}.tgz"
+    owner: solr
+    group: solr
+  tags: 
+  - csv
+  - api
+
+- name: Remove backup directory
+  file:
+    path: "{{ backup_restore_dir }}"
+    state: absent
+   # recurse: yes
+  tags:
+    - always 
+
+- name: PUT Solr backup archive file into S3 bucket
+  ignore_errors: yes
+  aws_s3:
+      bucket: "{{ bucket_name }}"
+      object: "/solr-backups/{{ solr_collection }}_{{ today }}.tgz"
+      src: "/tmp/{{ solr_collection }}_{{ today }}.tgz"
+      mode: put
+

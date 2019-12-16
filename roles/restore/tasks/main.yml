@@ -1,0 +1,61 @@
+---
+# tasks file for restore
+# Get backup file from S3
+
+- name: Create restore directory
+  file:
+     path: "{{ backup_restore_dir }}"
+     state: directory
+     owner: solr
+     group: solr
+     mode: "755"
+  tags:
+  - csv
+  - api
+
+- name: Unarchive the Solr backup file
+  unarchive:
+    src: "/tmp/{{ solr_collection }}_{{ date }}.tgz"
+    dest: "{{ restore_dir }}"
+    remote_src: yes
+  tags: 
+  - csv
+  - api 
+
+- name: Empty the Solr collection to be restored
+  shell: "curl -L -s \"http://{{ solr_host }}:{{ solr_port }}/solr/{{ solr_collection}}/update\" -H \"Content-Type: text/xml\" --data-binary '<delete><query>*:*</query></delete>'"
+  tags: 
+  - csv
+  - api 
+
+- name: Reload the Solr collection so document count is updated
+  shell: "curl -L -s \"http://{{ solr_host }}:{{ solr_port }}/solr/admin/collections?action=RELOAD&name={{ solr_collection }}\" > /dev/null 2>&1"
+  tags: 
+  - csv
+  - api
+
+- name: Restore Solr collection from CSV file
+  shell: "curl -L -s \"http://{{ solr_host }}:{{ solr_port }}/solr/{{ solr_collection }}/update?commit=true&skip={{ fields_to_skip }}\" --data-binary @{{ backup_restore_dir }}/{{ solr_collection }}/curate.csv -H 'Content-type:application/csv'"
+  tags:
+  - csv
+  
+- name: Restore collection using REST API
+  shell: "curl \"http://{{ solr_host }}:{{ solr_port }}/solr/{{ solr_collection }}/replication?command=restore&location={{ api_restore_path }}\""
+  tags:
+  - api 
+
+- name: Reload the Solr collection so document count is updated
+  shell: "curl -L -s \"http://{{ solr_host }}:{{ solr_port }}/solr/admin/collections?action=RELOAD&name={{ solr_collection }}\" > /dev/null 2>&1"
+  tags: 
+  - csv
+  - api
+
+- name: Remove restore directory
+  file:
+    path: "{{ backup_restore_dir }}"
+    state: absent
+   # recurse: yes
+  tags:
+    - bogus
+
+
